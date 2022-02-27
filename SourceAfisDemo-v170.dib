@@ -3,6 +3,24 @@
 #r "nuget: SourceAfis, 1.7.0"
 #r "nuget: SkiaSharp"
 
+#!pwsh
+
+$helperClass = @"
+using System;
+namespace extensions 
+{
+    public static class ObjectExtensions 
+    {
+        public static TResult PipeTo<TSource, TResult>(this TSource source, Func<TSource, TResult> action) 
+        {
+            return action(source);
+        }
+    }
+}
+"@
+
+Add-Type -TypeDefinition $helperClass
+
 #!csharp
 
 using System.IO;
@@ -24,28 +42,39 @@ private void Display(Bitmap source)
 
 #!csharp
 
+private Person SetFingerprint(int id, Bitmap fingerprint) 
+{
+    Fingerprint fp = new Fingerprint();
+    fp.AsBitmap = fingerprint;
+
+    Person person = new Person(fp);
+    person.Id = id;
+    return person;
+}
+
+#!csharp
+
 var engine = new AfisEngine();
+
+#!csharp
+
 var right_ring = new Bitmap("right_ring.bmp");
-Display(right_ring);
-
-var right_ring_test = new Bitmap("right_ring_test.bmp");
-Display(right_ring_test);
-
-Fingerprint fp_probe = new Fingerprint();
-fp_probe.AsBitmap = right_ring;
-
-Fingerprint fp_candidate = new Fingerprint();
-fp_candidate.AsBitmap = right_ring_test;
-
-Person person_probe = new Person(fp_probe);
-Person person_candidate = new Person(fp_candidate);
+var person_probe = SetFingerprint(1, right_ring);
 
 engine.Extract(person_probe);
+
+Display(right_ring);
+
+#!csharp
+
+var right_ring_test = new Bitmap("right_ring_test.bmp");
+var person_candidate = SetFingerprint(2, right_ring_test);
+
 engine.Extract(person_candidate);
 
-// var memoryStream = new MemoryStream(fp_probe.AsImageData);
-// var template = new Bitmap(memoryStream);
-// Display(template);
+Display(right_ring_test);
 
-var verify = engine.Verify(person_probe, person_candidate);
-verify.Display();
+#!csharp
+
+var verificationResult = engine.Verify(person_probe, person_candidate);
+verificationResult.Display();
