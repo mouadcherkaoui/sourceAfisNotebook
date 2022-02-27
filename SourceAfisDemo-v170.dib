@@ -1,0 +1,51 @@
+#!csharp
+
+#r "nuget: SourceAfis, 1.7.0"
+#r "nuget: SkiaSharp"
+
+#!csharp
+
+using System.IO;
+using System.Drawing;
+using System.Drawing.Imaging;
+using SkiaSharp;
+using SourceAFIS.Simple;
+using Microsoft.DotNet.Interactive.Formatting;
+
+#!csharp
+
+private void Display(Bitmap source) 
+{
+    var memStream = new MemoryStream();
+    source.Save(memStream, ImageFormat.Png);
+    string base64str = Convert.ToBase64String(memStream.ToArray());
+    display(PocketViewTags.img[src: "data:image/png;base64," + base64str]);
+}
+
+#!csharp
+
+var engine = new AfisEngine();
+var right_ring = new Bitmap("right_ring.bmp");
+Display(right_ring);
+
+var right_ring_test = new Bitmap("right_ring_test.bmp");
+Display(right_ring_test);
+
+Fingerprint fp_probe = new Fingerprint();
+fp_probe.AsBitmap = right_ring;
+
+Fingerprint fp_candidate = new Fingerprint();
+fp_candidate.AsBitmap = right_ring_test;
+
+Person person_probe = new Person(fp_probe);
+Person person_candidate = new Person(fp_candidate);
+
+engine.Extract(person_probe);
+engine.Extract(person_candidate);
+
+// var memoryStream = new MemoryStream(fp_probe.AsImageData);
+// var template = new Bitmap(memoryStream);
+// Display(template);
+
+var verify = engine.Verify(person_probe, person_candidate);
+verify.Display();

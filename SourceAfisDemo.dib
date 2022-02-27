@@ -39,6 +39,42 @@ private Bitmap resizeBitmap(Bitmap bmp, int width, int height)
 
 #!csharp
 
+private Bitmap MakeGrayscaleWithColorMatrix(Bitmap original)
+{
+   var stopWatch = Stopwatch.StartNew();
+     //create a blank bitmap the same size as original
+     Bitmap newBitmap = new Bitmap(original.Width, original.Height);
+     //get a graphics object from the new image
+     Graphics g = Graphics.FromImage(newBitmap);
+     //create the grayscale ColorMatrix
+     ColorMatrix colorMatrix = new ColorMatrix(
+        new float[][]
+       {
+          new float[] {.3f, .3f, .3f, 0, 0},
+          new float[] {.59f, .59f, .59f, 0, 0},
+          new float[] {.11f, .11f, .11f, 0, 0},
+          new float[] {0, 0, 0, 1, 0},
+          new float[] {0, 0, 0, 0, 1}
+       });
+     //create some image attributes
+     ImageAttributes attributes = new ImageAttributes();
+     //set the color matrix attribute
+     attributes.SetColorMatrix(colorMatrix);
+     //draw the original image on the new image
+     //using the grayscale color matrix
+     g.DrawImage(original, new Rectangle(0, 0, original.Width, original.Height),
+        0, 0, original.Width, original.Height, GraphicsUnit.Pixel, attributes);
+     //dispose the Graphics object
+     g.Dispose();
+
+     stopWatch.Stop();
+     System.Console.WriteLine("{0}: {1}", nameof(MakeGrayscaleWithColorMatrix), stopWatch.Elapsed);
+ 
+     return newBitmap;
+ }
+
+#!csharp
+
 private unsafe Bitmap ToGrayscale(Bitmap colorBitmap)
 {
     var stopWatch = Stopwatch.StartNew();
@@ -125,11 +161,13 @@ private byte[] getPixelsData(Bitmap source)
 
 private FingerprintTemplate CreateTemplate(Bitmap source)
 {
-    // var bitmap = resizeBitmap(source, 300, 300);
-    var grayBitmap = source; // ToGrayscale(source);
+    //var bitmap = resizeBitmap(source, 300, 300);
+    var grayBitmap = ToGrayscale(source);
+    
     var pixels = getPixelsData(source);
 
-    var image = Image.FromHbitmap(grayBitmap.GetHbitmap());
+    var image = Image.FromHbitmap(source.GetHbitmap());
+
     var graphics = Graphics.FromImage(image);
 
     var options = new FingerprintImageOptions
@@ -139,7 +177,7 @@ private FingerprintTemplate CreateTemplate(Bitmap source)
 
     return new FingerprintTemplate(
         new FingerprintImage(
-            grayBitmap.Width, grayBitmap.Height, pixels, options));
+            source.Width, source.Height, pixels, options));
 
 }
 
@@ -155,6 +193,7 @@ private bool FingerprintsMatching(Bitmap current, Bitmap candidate) {
         var probe = CreateTemplate(current);
         var _candidate = CreateTemplate(candidate);
 
+
         fingerprintMatcher = new FingerprintMatcher(probe);
 
         double score = fingerprintMatcher
@@ -167,10 +206,19 @@ private bool FingerprintsMatching(Bitmap current, Bitmap candidate) {
 
         bool matches = score >= 40;
 
-        System.Console.ReadLine();
-
         return matches;
     }
+}
+
+#!csharp
+
+using Microsoft.DotNet.Interactive.Formatting;
+private void Display(Bitmap source) 
+{
+    var memStream = new MemoryStream();
+    source.Save(memStream, ImageFormat.Png);
+    string base64str = Convert.ToBase64String(memStream.ToArray());
+    display(PocketViewTags.img[src: "data:image/png;base64," + base64str]);
 }
 
 #!csharp
@@ -178,5 +226,11 @@ private bool FingerprintsMatching(Bitmap current, Bitmap candidate) {
 Bitmap current = new Bitmap("right_ring.bmp"); 
 Bitmap candidate = new Bitmap("right_ring_test.bmp");
 
-var result = FingerprintsMatching(current, candidate) ? "Matches" : "Not Matching";
+var currentGray = resizeBitmap(ToGrayscale(current), 300, 300);
+Display(currentGray);
+
+var candidateGray = resizeBitmap(MakeGrayscaleWithColorMatrix(candidate), 300, 300);
+Display(candidateGray);
+
+var result = FingerprintsMatching(candidate, current) ? "Matches" : "Not Matching";
 Console.WriteLine(result);
