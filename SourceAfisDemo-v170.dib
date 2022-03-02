@@ -1,7 +1,7 @@
 #!csharp
 
 #r "nuget: SourceAfis, 1.7.0"
-#r "nuget: SkiaSharp"
+// #r "nuget: SkiaSharp"
 
 #!pwsh
 
@@ -24,11 +24,15 @@ Add-Type -TypeDefinition $helperClass
 #!csharp
 
 using System.IO;
+using System.Linq;
 using System.Drawing;
 using System.Drawing.Imaging;
-using SkiaSharp;
 using SourceAFIS.Simple;
 using Microsoft.DotNet.Interactive.Formatting;
+
+#!markdown
+
+### display helper method to display fingerprints bitmap
 
 #!csharp
 
@@ -63,6 +67,8 @@ var person_probe = SetFingerprint(1, right_ring);
 
 engine.Extract(person_probe);
 
+person_probe.Fingerprints
+    .ForEach(fp => Console.WriteLine(BitConverter.ToString(fp.AsIsoTemplate)));
 Display(right_ring);
 
 #!csharp
@@ -71,6 +77,9 @@ var right_ring_test = new Bitmap("right_ring_test.bmp");
 var person_candidate = SetFingerprint(2, right_ring_test);
 
 engine.Extract(person_candidate);
+
+person_candidate.Fingerprints
+    .ForEach(fp => Console.WriteLine(BitConverter.ToString(fp.AsIsoTemplate)));
 
 Display(right_ring_test);
 
